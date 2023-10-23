@@ -55,8 +55,7 @@ def load_wav(vid_path, sr):
     wav_output = []
     for sliced in intervals:
       wav_output.extend(wav[sliced[0]:sliced[1]])
-    wav_output = np.array(wav_output)
-    return wav_output
+    return np.array(wav_output)
 
 def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length) # linear spectrogram
@@ -125,8 +124,7 @@ def prepare_data(SRC_PATH):
         if(i>100):
             break
 
-    path_spk_list = list(zip(allpath_list, allspk_list))
-    return path_spk_list
+    return list(zip(allpath_list, allspk_list))
 
 def main():
 
@@ -137,7 +135,7 @@ def main():
     # ==================================
     #       Get Train/Val.
     # ==================================
-    
+
     total_list = [os.path.join(args.data_path, file) for file in os.listdir(args.data_path)]
     unique_list = np.unique(total_list)
 
@@ -159,18 +157,13 @@ def main():
                                                 num_class=params['n_classes'],
                                                 mode='eval', args=args)
 
-    # ==> load pre-trained model ???
-    if args.resume:
-        # ==> get real_model from arguments input,
-        # load the model if the imag_model == real_model.
-        if os.path.isfile(args.resume):
-            network_eval.load_weights(os.path.join(args.resume), by_name=True)
-            print('==> successfully loading model {}.'.format(args.resume))
-        else:
-            raise IOError("==> no checkpoint found at '{}'".format(args.resume))
-    else:
+    if not args.resume:
         raise IOError('==> please type in the model to load')
 
+    if not os.path.isfile(args.resume):
+        raise IOError(f"==> no checkpoint found at '{args.resume}'")
+    network_eval.load_weights(os.path.join(args.resume), by_name=True)
+    print(f'==> successfully loading model {args.resume}.')
     # The feature extraction process has to be done sample-by-sample,
     # because each sample is of different lengths.
 
@@ -193,7 +186,9 @@ def main():
         feats = np.array(feats)[:,0,:]  # [splits, embedding dim]
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
-        print("epoch:{}, utterance length: {}, speakers: {}".format(epoch, len(utterance_speakers), len(path_spks)))
+        print(
+            f"epoch:{epoch}, utterance length: {len(utterance_speakers)}, speakers: {len(path_spks)}"
+        )
 
     np.savez('training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 

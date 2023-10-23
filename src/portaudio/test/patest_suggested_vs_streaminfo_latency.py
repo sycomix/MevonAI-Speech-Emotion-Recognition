@@ -6,6 +6,7 @@ Run and graph the results of patest_suggested_vs_streaminfo_latency.c
 Requires matplotlib for plotting: http://matplotlib.sourceforge.net/
 
 """
+
 import os
 from pylab import *
 import numpy
@@ -19,7 +20,9 @@ outputDeviceIndex = -1 # -1 means default
 sampleRate = 44100
 pdfFilenameSuffix = "_wmme"
 
-pdfFile = PdfPages("patest_suggested_vs_streaminfo_latency_" + str(sampleRate) + pdfFilenameSuffix +".pdf") #output this pdf file
+pdfFile = PdfPages(
+    f"patest_suggested_vs_streaminfo_latency_{sampleRate}{pdfFilenameSuffix}.pdf"
+)
 
 
 def loadCsvData( dataFileName ):

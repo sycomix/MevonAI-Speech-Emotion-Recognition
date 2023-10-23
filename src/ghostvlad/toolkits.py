@@ -7,8 +7,7 @@ def initialize_GPU(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    session = tf.Session(config=config)
-    return session
+    return tf.Session(config=config)
 
 def get_chunks(l, n):
     # For item i in a range that is a length of l,
@@ -22,7 +21,7 @@ def debug_generator(generator):
     import pdb
     G = generator.next()
     for i,img in enumerate(G[0]):
-        path = '../sample/{}.jpg'.format(i)
+        path = f'../sample/{i}.jpg'
         img = np.asarray(img[:,:,::-1] + 128.0, dtype='uint8')
         cv2.imwrite(path, img)
 
@@ -118,11 +117,8 @@ def calculate_eer(y, y_score):
 
 def sync_model(src_model, tgt_model):
     print('==> synchronizing the model weights.')
-    params = {}
-    for l in src_model.layers:
-        params['{}'.format(l.name)] = l.get_weights()
-
+    params = {f'{l.name}': l.get_weights() for l in src_model.layers}
     for l in tgt_model.layers:
         if len(l.get_weights()) > 0:
-            l.set_weights(params['{}'.format(l.name)])
+            l.set_weights(params[f'{l.name}'])
     return tgt_model

@@ -70,7 +70,5 @@ def regularization_loss(params, weight):
   Returns:
     the regularization loss
   """
-  l2_reg = 0
-  for param in params:
-    l2_reg += torch.norm(param)
+  l2_reg = sum(torch.norm(param) for param in params)
   return weight * l2_reg

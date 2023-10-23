@@ -41,9 +41,7 @@ SAVED_MODEL_NAME = 'pretrained/saved_model.uisrnn_benchmark'
 def append2dict(speakerSlice, spk_period):
     key = list(spk_period.keys())[0]
     value = list(spk_period.values())[0]
-    timeDict = {}
-    timeDict['start'] = int(value[0]+0.5)
-    timeDict['stop'] = int(value[1]+0.5)
+    timeDict = {'start': int(value[0]+0.5), 'stop': int(value[1]+0.5)}
     if(key in speakerSlice):
         speakerSlice[key].append(timeDict)
     else:
@@ -73,16 +71,14 @@ def genMap(intervals):  # interval slices to maptable
         idx += slicelen[i]
     mapTable[sum(slicelen)] = intervals[-1,-1]
 
-    keys = [k for k,_ in mapTable.items()]
-    keys.sort()
+    keys = sorted(mapTable)
     return mapTable, keys
 
 def fmtTime(timeInMillisecond):
     millisecond = timeInMillisecond%1000
     minute = timeInMillisecond//1000//60
     second = (timeInMillisecond-minute*60*1000)//1000
-    time = '{}:{:02d}.{}'.format(minute, second, millisecond)
-    return time
+    return '{}:{:02d}.{}'.format(minute, second, millisecond)
 
 def load_wav(vid_path, sr):
     wav, _ = librosa.load(vid_path, sr=sr)
@@ -193,26 +189,26 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5,exportFile=None,ex
     n_speakers = len(speakerSlice)
     print('N-SPeakers:',n_speakers)
     global speaker_final
-    speaker_final = [pdb.empty()] * n_speakers 
+    speaker_final = [pdb.empty()] * n_speakers
     for spk,timeDicts in speakerSlice.items():
-        print('========= ' + str(spk) + ' =========')
+        print(f'========= {str(spk)} =========')
         for timeDict in timeDicts:
             s = timeDict['start']
             e = timeDict['stop']
             diarization_try(wav_path,s/1000,e/1000,spk)
             s = fmtTime(s)  # change point moves to the center of the slice
             e = fmtTime(e)
-            print(s+' ==> '+e)
+            print(f'{s} ==> {e}')
 
     # Find the Top n Speakers    
     speaker_final.sort(key=lambda speaker:speaker.duration_seconds,reverse=True)
-    speaker_final = speaker_final[0:expectedSpeakers]
+    speaker_final = speaker_final[:expectedSpeakers]
 
     # Export the Files
     iso_wav_path = wav_path.split(".")[0]
     itr = 0
     while itr<len(speaker_final):
-        write_path = exportFile+"_speaker"+str(itr)+".wav"
+        write_path = f"{exportFile}_speaker{itr}.wav"
         speaker_final[itr].export(write_path,format="wav")
         itr+=1
 
@@ -245,9 +241,9 @@ def diarizeAudio(inputFile,exportFile,expectedSpeakers=2):
 if __name__ == '__main__':
     FILE_N = "m6.wav"
     print("Filtering")
-    filterAudio.filterWav(FILE_N,"filter_"+FILE_N)
-    filtered = pdb.from_wav("filter_"+FILE_N)
-    filtered.export("Amp-filter_"+FILE_N, format= "wav")
+    filterAudio.filterWav(FILE_N, f"filter_{FILE_N}")
+    filtered = pdb.from_wav(f"filter_{FILE_N}")
+    filtered.export(f"Amp-filter_{FILE_N}", format= "wav")
     print("Filtering Complete")
-    main("filter_"+FILE_N, embedding_per_second=0.6, overlap_rate=0.4)
+    main(f"filter_{FILE_N}", embedding_per_second=0.6, overlap_rate=0.4)
 

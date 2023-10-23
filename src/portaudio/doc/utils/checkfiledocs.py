@@ -24,10 +24,7 @@ paHtmlDocDirectory = os.path.join( paRootDirectory, "doc", "html" )
 ##  $ python checkfiledocs.py
 
 def oneOf_a_in_b(a, b):
-    for x in a:
-        if x in b:
-            return True
-    return False
+    return any(x in b for x in a)
 
 # recurse from top and return a list of all with the given
 # extensions. ignore .svn directories. return absolute paths
@@ -67,21 +64,21 @@ def printError( f, message ):
 
 
 for f in sourceFiles:
-    if not doxygenHtmlDocFileName( os.path.basename(f) ) in docFiles:
+    if doxygenHtmlDocFileName(os.path.basename(f)) not in docFiles:
         printError( f, "no doxygen generated doc page" )
 
     s = file( f, 'rt' ).read()
 
-    if not '/**' in s:
+    if '/**' not in s:
         printError( f, "no doxygen /** block" )  
-    
-    if not '@file' in s:
+
+    if '@file' not in s:
         printError( f, "no doxygen @file tag" )
 
-    if not '@brief' in s:
+    if '@brief' not in s:
         printError( f, "no doxygen @brief tag" )
-        
-    if not '@ingroup' in s:
+
+    if '@ingroup' not in s:
         printError( f, "no doxygen @ingroup tag" )
         
 

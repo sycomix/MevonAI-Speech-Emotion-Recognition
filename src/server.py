@@ -11,10 +11,12 @@ opHolder='<tr><th scope="row">{}</th><td><a href="{}"><button type="button" clas
 @app.route('/')
 def home():
     global opHolder,opsTest
-    finalHTML=""
-    for i in range(1,len(opsTest)+1):
-        finalHTML+=opHolder.format(1,url_for('operator',op=opsTest[i-1]),opsTest[i-1])
-
+    finalHTML = "".join(
+        opHolder.format(
+            1, url_for('operator', op=opsTest[i - 1]), opsTest[i - 1]
+        )
+        for i in range(1, len(opsTest) + 1)
+    )
     return render_template("index.html",ops=finalHTML)
 
 

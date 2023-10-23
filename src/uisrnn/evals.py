@@ -69,5 +69,4 @@ def compute_sequence_match_accuracy(sequence1, sequence2):
     count_matrix[index1, index2] += 1.0
   row_index, col_index = optimize.linear_sum_assignment(-count_matrix)
   optimal_match_count = count_matrix[row_index, col_index].sum()
-  accuracy = optimal_match_count / len(sequence1)
-  return accuracy
+  return optimal_match_count / len(sequence1)

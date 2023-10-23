@@ -38,12 +38,11 @@ class PlotDiar:
         self.title = title
 
         self.ax = self.fig.add_subplot(1, 1, 1)
-        cids = list()
         if self.gui:
-            cids.append(
-                self.fig.canvas.mpl_connect('key_press_event', self._on_keypress))
-            cids.append(
-                self.fig.canvas.mpl_connect('button_press_event', self._on_click))
+            cids = [
+                self.fig.canvas.mpl_connect('key_press_event', self._on_keypress),
+                self.fig.canvas.mpl_connect('button_press_event', self._on_click),
+            ]
             if pick:
                 cids.append(self.fig.canvas.mpl_connect('pick_event', self._on_pick))
         self.height = 5
@@ -60,7 +59,7 @@ class PlotDiar:
 
         self.timeline = self.ax.plot([0, 0], [0, 0], color='r')[-1]
         self.map = map
-        self.time_stamp = list()
+        self.time_stamp = []
         self.time_stamp_idx = 0
 
     def _draw_timeline(self, t):
@@ -78,18 +77,19 @@ class PlotDiar:
         Update the timeline given the position in the audio player
 
         """
-        if self.audio is not None and self.audio.playing():
-            t = self.audio.time()
-            min, max = self.ax.get_xlim()
-            if t > self.end_play and self.rect_picked is not None:
-                self.audio.pause()
-                self.end_play = self.maxx
-            self._draw_timeline(t)
-            if t > max:
-                self._dec_right(min, max)
-            if t < min:
-                self._dec_left(min, max)
-            self.fig.canvas.draw()
+        if self.audio is None or not self.audio.playing():
+            return
+        t = self.audio.time()
+        min, max = self.ax.get_xlim()
+        if t > self.end_play and self.rect_picked is not None:
+            self.audio.pause()
+            self.end_play = self.maxx
+        self._draw_timeline(t)
+        if t > max:
+            self._dec_right(min, max)
+        if t < min:
+            self._dec_left(min, max)
+        self.fig.canvas.draw()
 
     def _draw_info(self, t):
         """
@@ -144,18 +144,16 @@ class PlotDiar:
         plot.yticks(labels_pos, labels)
         self.maxy = y
         self.end_play = self.maxx
-        for cluster in self.map:
+        for _ in self.map:
             self.ax.plot([0, self.maxx], [y, y], linestyle=':',
                          color='#AAAAAA')
             y -= self.height
 
-        plot.title(self.title + ' (last frame: ' + str(self.maxx) + ')')
+        plot.title(f'{self.title} (last frame: {str(self.maxx)})')
         if self.gui:
             self._draw_info(0)
         plot.tight_layout()
-        self.time_stamp = list(set(self.time_stamp))
-        self.time_stamp.sort()
-
+        self.time_stamp = sorted(set(self.time_stamp))
         if self.vgrid:
             for x in  self.time_stamp:
                 self.ax.plot([x, x], [0, self.maxy], linestyle=':',
@@ -200,7 +198,7 @@ class PlotDiar:
         """
         hmin, hmax = self.ax.get_xlim()
         diff = hmax - hmin
-        if event.key == 'ctrl++' or event.key == 'ctrl+=':
+        if event.key in ['ctrl++', 'ctrl+=']:
             plot.xlim(hmin * 1.5, hmax * 1.5)
         elif event.key == 'ctrl+-':
             plot.xlim(hmin / 1.5, hmax / 1.5)
@@ -256,49 +254,49 @@ class PlotDiar:
         :param event: a picked event
 
         """
-        if isinstance(event.artist, Rectangle) and event.mouseevent.dblclick:
-            print('on pick dbclick')
-            rect = event.artist
-            x, y = rect.get_xy()
-            w = rect.get_width()
-            c = rect.get_fc()
-            if self.rect_picked is not None:
-                if self._colors_are_equal(c, self.rect_selected_color):
-                    rect.set_color(self.rect_color)
-                    self.rect_picked = None
-                    self.end_play = self.maxx
-                else:
-                    self.rect_picked.set_color(self.rect_color)
-                    rect.set_color(self.rect_selected_color)
-                    self.rect_picked = rect
-                    if self.audio is not None:
-                        self.audio.pause()
-                        self.audio.seek(x)
-                    self.time_stamp_idx = self.time_stamp.index(x)
-                    self.end_play = x + w
-                    self._draw_timeline(x)
-            else:
-                rect.set_color(self.rect_selected_color)
-                self.rect_picked = rect
+        if (
+            not isinstance(event.artist, Rectangle)
+            or not event.mouseevent.dblclick
+        ):
+            return
+        print('on pick dbclick')
+        rect = event.artist
+        x, y = rect.get_xy()
+        w = rect.get_width()
+        c = rect.get_fc()
+        if self.rect_picked is None:
+            rect.set_color(self.rect_selected_color)
+            self.rect_picked = rect
 
-                if self.audio is not None:
-                    self.audio.pause()
-                    self.audio.seek(x)
-                self.time_stamp_idx = self.time_stamp.index(x)
-                self.end_play = x + w
-                self._draw_timeline(x)
+            if self.audio is not None:
+                self.audio.pause()
+                self.audio.seek(x)
+            self.time_stamp_idx = self.time_stamp.index(x)
+            self.end_play = x + w
+            self._draw_timeline(x)
 
-            self.fig.canvas.draw()
+        elif self._colors_are_equal(c, self.rect_selected_color):
+            rect.set_color(self.rect_color)
+            self.rect_picked = None
+            self.end_play = self.maxx
+        else:
+            self.rect_picked.set_color(self.rect_color)
+            rect.set_color(self.rect_selected_color)
+            self.rect_picked = rect
+            if self.audio is not None:
+                self.audio.pause()
+                self.audio.seek(x)
+            self.time_stamp_idx = self.time_stamp.index(x)
+            self.end_play = x + w
+            self._draw_timeline(x)
+        self.fig.canvas.draw()
 
     @classmethod
     def _colors_are_equal(cls, c1, c2):
         """
         Compare two colors
         """
-        for i in range(4):
-            if c1[i] != c2[i]:
-                return False
-        return True
+        return all(c1[i] == c2[i] for i in range(4))
 
     @classmethod
     def _hms(cls, s):
@@ -309,6 +307,6 @@ class PlotDiar:
         """
         h = int(s) // 3600
         s %= 3600
-        m = int(s) // 60
+        m = s // 60
         s %= 60
         return '{:d}:{:d}:{:.2f}'.format(h, m, s)

@@ -178,10 +178,10 @@ def sample_permuted_segments(index_sequence, number_samples):
   # sample permutations
   sampled_index_sequences = []
   for _ in range(number_samples):
-    segments_array = []
     permutation = np.random.permutation(len(segments))
-    for permutation_item in permutation:
-      segments_array.append(segments[permutation_item])
+    segments_array = [
+        segments[permutation_item] for permutation_item in permutation
+    ]
     sampled_index_sequences.append(np.concatenate(segments_array))
   return sampled_index_sequences
 
@@ -219,10 +219,8 @@ def resize_sequence(sequence, cluster_id, num_permutations=None):
       sub_sequences.append(sequence[idx_set, :][0])
       seq_lengths.append(len(idx_set[0]) + 1)
 
-  # compute bias
-  transit_num = 0
-  for entry in range(len(cluster_id) - 1):
-    transit_num += (cluster_id[entry] != cluster_id[entry + 1])
+  transit_num = sum((cluster_id[entry] != cluster_id[entry + 1])
+                    for entry in range(len(cluster_id) - 1))
   bias_denominator = len(cluster_id)
   bias = (transit_num + 1) / bias_denominator
   return sub_sequences, seq_lengths, bias, bias_denominator

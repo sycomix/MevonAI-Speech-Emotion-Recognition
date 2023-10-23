@@ -160,10 +160,9 @@ class UISRNN:
         torch.from_numpy(var_dict['sigma2']).to(self.device))
 
     self.logger.print(
-        3, 'Loaded model with transition_bias={}, crp_alpha={}, sigma2={}, '
-        'rnn_init_hidden={}'.format(
-            self.transition_bias, self.crp_alpha, var_dict['sigma2'],
-            var_dict['rnn_init_hidden']))
+        3,
+        f"Loaded model with transition_bias={self.transition_bias}, crp_alpha={self.crp_alpha}, sigma2={var_dict['sigma2']}, rnn_init_hidden={var_dict['rnn_init_hidden']}",
+    )
 
   def fit_concatenated(self, train_sequence, train_cluster_id, args):
     """Fit UISRNN model to concatenated sequence and cluster_id.
@@ -263,8 +262,8 @@ class UISRNN:
       if args.learning_rate_half_life > 0:
         if num_iter > 0 and num_iter % args.learning_rate_half_life == 0:
           optimizer.param_groups[0]['lr'] /= 2.0
-          self.logger.print(2, 'Changing learning rate to: {}'.format(
-              optimizer.param_groups[0]['lr']))
+          self.logger.print(
+              2, f"Changing learning rate to: {optimizer.param_groups[0]['lr']}")
       optimizer.zero_grad()
       # For online learning, pack a subset in each iteration.
       if args.batch_size is not None:
@@ -324,8 +323,7 @@ class UISRNN:
                 float(loss2.data),
                 float(loss3.data)))
       train_loss.append(float(loss1.data))  # only save the likelihood part
-    self.logger.print(
-        1, 'Done training with {} iterations'.format(args.train_iteration))
+    self.logger.print(1, f'Done training with {args.train_iteration} iterations')
 
   def fit(self, train_sequences, train_cluster_ids, args):
     """Fit UISRNN model.
@@ -515,7 +513,7 @@ class UISRNN:
     beam_set = [BeamState()]
     for num_iter in np.arange(0, args.test_iteration * test_sequence_length,
                               args.look_ahead):
-      max_clusters = max([len(beam_state.mean_set) for beam_state in beam_set])
+      max_clusters = max(len(beam_state.mean_set) for beam_state in beam_set)
       look_ahead_seq = test_sequence[num_iter:  num_iter + args.look_ahead, :]
       look_ahead_seq_length = look_ahead_seq.shape[0]
       score_set = float('inf') * np.ones(
@@ -545,8 +543,7 @@ class UISRNN:
             beam_set[prev_beam_rank], look_ahead_seq, cluster_seq)
         updated_beam_set.append(updated_beam_state)
       beam_set = updated_beam_set
-    predicted_cluster_id = beam_set[0].trace[-test_sequence_length:]
-    return predicted_cluster_id
+    return beam_set[0].trace[-test_sequence_length:]
 
   def predict(self, test_sequences, args):
     """Predict labels for a single or many test sequences using UISRNN model.

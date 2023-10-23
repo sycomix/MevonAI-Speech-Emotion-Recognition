@@ -56,8 +56,7 @@ def load_wav(vid_path, sr):
     wav_output = []
     for sliced in intervals:
       wav_output.extend(wav[sliced[0]:sliced[1]])
-    wav_output = np.array(wav_output)
-    return wav_output
+    return np.array(wav_output)
 
 def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length) # linear spectrogram
@@ -106,7 +105,7 @@ def main():
     # ==================================
     #       Get Train/Val.
     # ==================================
-    
+
     total_list = [os.path.join(args.data_path, file) for file in os.listdir(args.data_path)]
     unique_list = np.unique(total_list)
 
@@ -128,18 +127,13 @@ def main():
                                                 num_class=params['n_classes'],
                                                 mode='eval', args=args)
 
-    # ==> load pre-trained model ???
-    if args.resume:
-        # ==> get real_model from arguments input,
-        # load the model if the imag_model == real_model.
-        if os.path.isfile(args.resume):
-            network_eval.load_weights(os.path.join(args.resume), by_name=True)
-            print('==> successfully loading model {}.'.format(args.resume))
-        else:
-            raise IOError("==> no checkpoint found at '{}'".format(args.resume))
-    else:
+    if not args.resume:
         raise IOError('==> please type in the model to load')
 
+    if not os.path.isfile(args.resume):
+        raise IOError(f"==> no checkpoint found at '{args.resume}'")
+    network_eval.load_weights(os.path.join(args.resume), by_name=True)
+    print(f'==> successfully loading model {args.resume}.')
     print('==> start testing.')
 
     # The feature extraction process has to be done sample-by-sample,
@@ -151,10 +145,10 @@ def main():
 
     wavDir = os.listdir(SRC_PATH)
     wavDir.sort()
-    for i,spkDir in enumerate(wavDir):   # Each speaker's directory
+    for i, spkDir in enumerate(wavDir):   # Each speaker's directory
         spk = spkDir    # speaker name
         wavPath = os.path.join(SRC_PATH, spkDir, 'audio')
-        print('Processing speaker({}) : {}'.format(i, spk))
+        print(f'Processing speaker({i}) : {spk}')
 
         for wav in os.listdir(wavPath): # wavfile
 

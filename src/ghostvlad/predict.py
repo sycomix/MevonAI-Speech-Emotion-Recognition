@@ -39,7 +39,7 @@ def main():
     # ==================================
     #       Get Train/Val.
     # ==================================
-    
+
     total_list = [os.path.join(args.data_path, file) for file in os.listdir(args.data_path)]
     unique_list = np.unique(total_list)
 
@@ -61,18 +61,13 @@ def main():
                                                 num_class=params['n_classes'],
                                                 mode='eval', args=args)
 
-    # ==> load pre-trained model ???
-    if args.resume:
-        # ==> get real_model from arguments input,
-        # load the model if the imag_model == real_model.
-        if os.path.isfile(args.resume):
-            network_eval.load_weights(os.path.join(args.resume), by_name=True)
-            print('==> successfully loading model {}.'.format(args.resume))
-        else:
-            raise IOError("==> no checkpoint found at '{}'".format(args.resume))
-    else:
+    if not args.resume:
         raise IOError('==> please type in the model to load')
 
+    if not os.path.isfile(args.resume):
+        raise IOError(f"==> no checkpoint found at '{args.resume}'")
+    network_eval.load_weights(os.path.join(args.resume), by_name=True)
+    print(f'==> successfully loading model {args.resume}.')
     print('==> start testing.')
 
     # The feature extraction process has to be done sample-by-sample,
@@ -83,7 +78,7 @@ def main():
                              hop_length=params['hop_length'], n_fft=params['nfft'],
                              min_slice=params['min_slice'])
         specs = np.expand_dims(np.expand_dims(specs[0], 0), -1)
-    
+
         v = network_eval.predict(specs)
         feats += [v]
 

@@ -67,8 +67,7 @@ class VladPooling(keras.engine.Layer):
             cluster_res = cluster_res[:, :self.k_centers, :]
 
         cluster_l2 = K.l2_normalize(cluster_res, -1)
-        outputs = K.reshape(cluster_l2, [-1, int(self.k_centers) * int(num_features)])
-        return outputs
+        return K.reshape(cluster_l2, [-1, int(self.k_centers) * int(num_features)])
 
 
 def amsoftmax_loss(y_true, y_pred, scale=30, margin=0.35):
@@ -113,16 +112,6 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
             x = keras.layers.GlobalAveragePooling2D(name='avg_pool')(x)
             x = keras.layers.Reshape((1, bottleneck_dim))(x)
 
-    elif aggregation == 'vlad':
-        x_k_center = keras.layers.Conv2D(vlad_clusters, (7, 1),
-                                         strides=(1, 1),
-                                         kernel_initializer='orthogonal',
-                                         use_bias=True, trainable=True,
-                                         kernel_regularizer=keras.regularizers.l2(weight_decay),
-                                         bias_regularizer=keras.regularizers.l2(weight_decay),
-                                         name='vlad_center_assignment')(x)
-        x = VladPooling(k_centers=vlad_clusters, mode='vlad', name='vlad_pool')([x_fc, x_k_center])
-
     elif aggregation == 'gvlad':
         x_k_center = keras.layers.Conv2D(vlad_clusters+ghost_clusters, (7, 1),
                                          strides=(1, 1),
@@ -132,6 +121,16 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
                                          bias_regularizer=keras.regularizers.l2(weight_decay),
                                          name='gvlad_center_assignment')(x)
         x = VladPooling(k_centers=vlad_clusters, g_centers=ghost_clusters, mode='gvlad', name='gvlad_pool')([x_fc, x_k_center])
+
+    elif aggregation == 'vlad':
+        x_k_center = keras.layers.Conv2D(vlad_clusters, (7, 1),
+                                         strides=(1, 1),
+                                         kernel_initializer='orthogonal',
+                                         use_bias=True, trainable=True,
+                                         kernel_regularizer=keras.regularizers.l2(weight_decay),
+                                         bias_regularizer=keras.regularizers.l2(weight_decay),
+                                         name='vlad_center_assignment')(x)
+        x = VladPooling(k_centers=vlad_clusters, mode='vlad', name='vlad_pool')([x_fc, x_k_center])
 
     else:
         raise IOError('==> unknown aggregation mode')
@@ -149,16 +148,7 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
     # ===============================================
     #            Softmax Vs AMSoftmax
     # ===============================================
-    if loss == 'softmax':
-        y = keras.layers.Dense(num_class, activation='softmax',
-                               kernel_initializer='orthogonal',
-                               use_bias=False, trainable=True,
-                               kernel_regularizer=keras.regularizers.l2(weight_decay),
-                               bias_regularizer=keras.regularizers.l2(weight_decay),
-                               name='prediction')(x)
-        trnloss = 'categorical_crossentropy'
-
-    elif loss == 'amsoftmax':
+    if loss == 'amsoftmax':
         x_l2 = keras.layers.Lambda(lambda x: K.l2_normalize(x, 1))(x)
         y = keras.layers.Dense(num_class,
                                kernel_initializer='orthogonal',
@@ -169,13 +159,24 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
                                name='prediction')(x_l2)
         trnloss = amsoftmax_loss
 
+    elif loss == 'softmax':
+        y = keras.layers.Dense(num_class, activation='softmax',
+                               kernel_initializer='orthogonal',
+                               use_bias=False, trainable=True,
+                               kernel_regularizer=keras.regularizers.l2(weight_decay),
+                               bias_regularizer=keras.regularizers.l2(weight_decay),
+                               name='prediction')(x)
+        trnloss = 'categorical_crossentropy'
+
     else:
         raise IOError('==> unknown loss.')
 
     if mode == 'eval':
         y = keras.layers.Lambda(lambda x: keras.backend.l2_normalize(x, 1))(x)
 
-    model = keras.models.Model(inputs, y, name='vggvox_resnet2D_{}_{}'.format(loss, aggregation))
+    model = keras.models.Model(
+        inputs, y, name=f'vggvox_resnet2D_{loss}_{aggregation}'
+    )
 
     if mode == 'train':
         if mgpu > 1:
